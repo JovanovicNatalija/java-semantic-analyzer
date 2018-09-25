@@ -1,0 +1,183 @@
+%{
+    #include <iostream>
+    #include <string>
+    #include <cstdlib>
+    #include <vector>
+    #include "type.hpp"
+    #include "ast.hpp"
+    #include <map>
+
+    using namespace std;
+
+    #define YYDEBUG 1
+
+    void yyerror(string s) {
+        cerr << s << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    int yylex();
+
+    map<string, Type*> tablica;
+%}
+
+%union {
+    int i;
+    ExprAST* e;
+    string *s;
+}
+
+%token new_token char_token public_token static_token void_token main_token string_token double_token  Main_token
+%token private_token class_token this_token return_token
+%token <s> id_token tip_token
+
+%token <i> int_token
+
+%type <e> E Naredba NizNaredbi
+
+%left '+' '-'
+%left '*' '/' 
+
+%% 
+Program : Program Klasa 
+| Klasa
+;
+
+Klasa : public_token class_token Main_token '{' KlasaMain '}'
+| class_token id_token '{' '}' // ovde treba nesto
+;
+
+KlasaMain : public_token static_token void_token main_token '(' tip_token '[' ']' id_token ')' '{' NizNaredbi '}' {
+    Type* lastCheck = $12->typecheck();
+    if(lastCheck) {
+        cout << "There are no semantics errors." << endl;
+    }
+    delete lastCheck;
+}
+;
+
+NizNaredbi : NizNaredbi Naredba ';' {
+    $$ = new SeqExprAST($1, $2);
+}
+| Naredba ';' {
+    $$ = $1;
+}
+;
+
+Naredba : tip_token id_token '=' E  {
+    map<string, Type*>::iterator tmp = tablica.find(*$2);
+    if(tmp != tablica.end()) {
+        cerr << "Variable " << *$2 << " is already defined" << endl;
+        exit(EXIT_FAILURE);
+    }
+    if(*$1 == "int") {
+        $$ = new AssignExprAST(*$2, $4, new IntType());
+        tablica[*$2] = new IntType();
+    } else if(*$1 == "double") {
+        $$ = new AssignExprAST(*$2, $4, new DoubleType());
+        tablica[*$2] = new DoubleType();
+    } else if(*$1 == "char") {
+        $$ = new AssignExprAST(*$2, $4, new CharType());
+        tablica[*$2] = new CharType();
+    } else {
+        $$ = new AssignExprAST(*$2, $4, new StringType());
+        tablica[*$2] = new StringType();
+    }
+
+    delete $1;
+    delete $2;
+}
+| tip_token '['']' id_token '=' new_token tip_token '[' int_token ']' {
+    map<string, Type*>::iterator tmp = tablica.find(*$4);
+    if(tmp != tablica.end()) {
+        cerr << "Variable " << *$4 << " is already defined" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    Type* varArrayType = NULL;
+    if(*$1 == "int") {
+        varArrayType = new IntType();
+    } else if(*$1 == "double") {
+        varArrayType = new DoubleType();
+    } else if(*$1 == "char") {
+        varArrayType = new CharType();
+    } else {
+        varArrayType = new StringType();
+    }
+
+    Type* exprArrayType = NULL;
+    if(*$7 == "int") {
+        exprArrayType = new IntType();
+    } else if(*$7 == "double") {
+        exprArrayType = new DoubleType();
+    } else if(*$7 == "char") {
+        exprArrayType = new CharType();
+    } else {
+        exprArrayType = new StringType();
+    }
+
+    tablica[*$4] = new ArrayType($9, varArrayType->copy());
+
+    $$ = new AssignExprAST(*$4, new ConstantExprAST(new ArrayType($9, exprArrayType)), new ArrayType($9, varArrayType));
+
+    delete $1;
+    delete $4;
+    delete $7;
+}
+| id_token '=' E {
+    $$ = new PredefineExprAST(*$1, $3);
+    delete $1;
+}
+| id_token '[' E ']' '=' E {
+    $$ = new PredefineArrayExprAST(*$1, $3, $6);
+    delete $1;
+}
+;
+
+E : E '+' E {
+    $$ = new AddExprAST($1, $3);
+}
+| E '-' E {
+    $$ = new SubExprAST($1, $3);
+}
+| E '*' E {
+    $$ = new MulExprAST($1, $3);
+}
+| E '/' E  {
+    $$ = new DivExprAST($1, $3);
+}
+| '(' E ')' {
+    $$ = $2;
+}
+| id_token {
+    $$ = new VariableExprAST(*$1);
+    delete $1;
+}
+| string_token {
+    $$ = new ConstantExprAST(new StringType());
+}
+| double_token {
+    $$ = new ConstantExprAST(new DoubleType());
+}
+| int_token {
+    $$ = new ConstantExprAST(new IntType());
+}
+| char_token {
+    $$ = new ConstantExprAST(new CharType());
+}
+| id_token '[' E ']' {
+    $$ = new ElementOfArrayExprAST(*$1, $3);
+    delete $1;
+}
+;
+
+%%
+
+int main() {
+    //yydebug = 1;
+
+    yyparse();
+
+    return 1;
+}
+  

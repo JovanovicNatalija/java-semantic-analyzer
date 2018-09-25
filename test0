@@ -1,0 +1,11 @@
+public static void main(String[] args) {
+	    String s = "Java semanticka analiza";
+	    String c = "m";
+	    char n = 'm';
+	    int [] x = new int[5];
+	    x[1] = 0;
+	    c = "natalija";
+	    s = "1";
+
+	    Tacka t = new Tacka();
+	}

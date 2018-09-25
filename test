@@ -1,0 +1,10 @@
+public static void main(String[] args) {
+    int x = 10;
+	int y = 20;
+	int z = x;
+
+    double [] a = new double[5];
+    a[1] = 0;
+
+    String str = "Zdravo";
+}
