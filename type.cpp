@@ -52,3 +52,11 @@ int ArrayType::getN() const {
 Type* ArrayType::getType() const {
     return _t;
 }
+
+int ClassType::type() const {
+    return CLASS;
+}
+
+Type *ClassType::copy() const {
+    return new ClassType();
+}

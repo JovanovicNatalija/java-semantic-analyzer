@@ -61,8 +61,6 @@ class ClassType : public Type {
 public:
   int type() const;
   string name() const;
-  map<string, Type*> tablica_polja() const;
-  map<string, pair<Type*, Type*> > tablica_metoda() const;
   Type* copy() const;
 };
 
