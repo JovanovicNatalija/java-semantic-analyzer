@@ -1,52 +1,34 @@
+class Tacka {
+         public double x;
+	 public double y;
+         
+         public Tacka() {
+             x = 0;
+             y = 0;
+         }
+         
+         public Tacka(double x1, double y1) {
+             x = x1;
+             y = y1;
+         }
+         
+         public double getX() {
+             return x;
+         }
+         
+         public double getY() {
+             return y;
+         }
+}
+
 public class Main {
 	public static void main(String[] args) {
 	    String s = "Java semanticka analiza";
 	    String c = "m";
 	    char n = 'm';
-	    int [] x = new int[5];
-	    x[1] = 0;
+	    int [] m = new int[5];
+	    m[1] = 0;
 	    c = "natalija";
 	    s = "1";
-		
-	    Tacka t = new Tacka();
-	}
-}
-
-class Tacka {
-         private double x, y;
-         
-         public Tacka() {
-             this.x = 0;
-             this.y = 0;
-         }
-         
-         public Tacka(double x, double y) {
-             this.x = x;
-             this.y = y;
-         }
-         
-         public double getX() {
-             return this.x;
-         }
-         
-         public double getY() {
-             return this.y;
-         }
-         
-         public void setX(double x) {
-             this.x = x;
-         }
-         
-         public void setY(double y) {
-             this.y = y;
-         }
-         
-         public void translate(double dx, double dy) {
-		x = x + dx;
-		y = y + dy;
-	}
-	
-	public double distance(Tacka t) {
-		return Math.sqrt((this.x - t.x)*(this.x - t.x) + (this.y - t.y)*(this.y - t.y));
 	}
 }
