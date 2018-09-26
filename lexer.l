@@ -23,7 +23,6 @@
 "Main"      return Main_token;
 "class"     return class_token; 
 "private"   return private_token;
-"this"      return this_token;
 "return"    return return_token;
 "int"|"double"|"char"|"String" {
     yylval.s = new string(yytext);

@@ -27,8 +27,8 @@
     string *s;
 }
 
-%token new_token char_token public_token static_token void_token main_token string_token double_token  Main_token
-%token private_token class_token this_token return_token
+%token new_token char_token public_token static_token void_token main_token string_token double_token Main_token
+%token private_token class_token return_token
 %token <s> id_token tip_token
 
 %token <i> int_token
@@ -39,22 +39,196 @@
 %left '*' '/' 
 
 %% 
-Program : Program Klasa 
+Program : NizKlasa KlasaMain
+;
+
+NizKlasa : NizKlasa Klasa
 | Klasa
 ;
 
-Klasa : public_token class_token Main_token '{' KlasaMain '}'
-| class_token id_token '{' '}' // ovde treba nesto
+Klasa : class_token id_token '{' TeloKlase '}' {
+    map<string, Type*>::iterator tmp = tablica.find(*$2);
+    if(tmp != tablica.end()) {
+        cerr << "Class " << *$2 << " is already defined." << endl;
+        exit(EXIT_FAILURE); 
+    }
+    tablica[*$2] = new ClassType();
+    delete $2;
+}
 ;
 
-KlasaMain : public_token static_token void_token main_token '(' tip_token '[' ']' id_token ')' '{' NizNaredbi '}' {
-    Type* lastCheck = $12->typecheck();
+KlasaMain : public_token class_token Main_token '{' public_token static_token void_token main_token '(' tip_token '[' ']' id_token ')' '{' NizNaredbi '}' '}' {
+    Type* lastCheck = $16->typecheck();
     if(lastCheck) {
         cout << "There are no semantics errors." << endl;
     }
     delete lastCheck;
 }
 ;
+
+TeloKlase : NizPolja NizKonstruktora NizMetoda {}
+;
+
+NizPolja : NizPolja Polje ';'
+| Polje ';'
+;
+
+Polje : public_token Naredba {}
+;
+
+// NizId : NizId ',' id_token {
+//     map<string, Type*>::iterator tmp = tablica.find(*$3);
+//     if(tmp != tablica.end()) {
+//         cerr << "Variable " << $3 << " is already defined" << endl;
+//         exit(EXIT_FAILURE);
+//     }
+//     /* dodaj u listu polja */
+//     delete $3;
+// }
+// | id_token {
+//     map<string, Type*>::iterator tmp = tablica.find(*$1);
+//     if(tmp != tablica.end()) {
+//         cerr << "Variable " << $1 << " is already defined" << endl;
+//         exit(EXIT_FAILURE);
+//     }
+//     /* dodaj u listu polja */
+//     delete $1;
+// }
+// ;
+
+NizKonstruktora : NizKonstruktora Konstruktor {}
+| Konstruktor {}
+;
+
+Konstruktor :  public_token id_token '(' NizArgumenata ')' '{' NizNaredbi '}' {
+    Type* lastCheck = $7->typecheck();
+    if(lastCheck) {
+        cout << "There are no semantics errors in class constructor " << *$2 << endl;
+    }
+    delete $2;
+    delete lastCheck;
+}
+| public_token id_token '(' ')' '{' NizNaredbi '}' {
+    Type* lastCheck = $6->typecheck();
+    if(lastCheck) {
+        cout << "There are no semantics errors in class constructor " << *$2 << endl;
+    }
+    delete $2;
+    delete lastCheck;
+}
+;
+
+NizMetoda : NizMetoda Metod {}
+| Metod {}
+;
+
+Metod : public_token tip_token id_token '(' NizArgumenata ')' '{' NizNaredbi return_token E ';' '}' {
+    Type* lastCheck = $8->typecheck();
+    Type* methodType;
+    if(*$2 == "int") {
+        methodType = new IntType();
+    } else if(*$2 == "double") {
+        methodType = new DoubleType();
+    } else if(*$2 == "char") {
+        methodType = new CharType();
+    } else {
+        methodType = new StringType();
+    }
+    if(methodType->type() != $10->typecheck()->type()) {
+        cerr << "Invalid return type in method " << *$3 << endl;
+        exit(EXIT_FAILURE);
+    }
+    if(lastCheck) {
+        cout << "There are no semantics errors in class " << *$3 << endl;
+    }
+    delete $3;
+    delete $2;
+    delete lastCheck;
+}
+| public_token tip_token id_token '(' ')' '{' NizNaredbi return_token E ';' '}' {
+    Type* lastCheck = $7->typecheck();
+    Type* methodType;
+    if(*$2 == "int") {
+        methodType = new IntType();
+    } else if(*$2 == "double") {
+        methodType = new DoubleType();
+    } else if(*$2 == "char") {
+        methodType = new CharType();
+    } else {
+        methodType = new StringType();
+    }
+    if(methodType->type() != $9->typecheck()->type()) {
+        cerr << "Invalid return type in method " << *$3 << endl;
+        exit(EXIT_FAILURE);
+    }
+    if(lastCheck) {
+        cout << "There are no semantics errors in class " << *$3 << endl;
+    }
+    delete $3;
+    delete $2;
+    delete lastCheck;
+}
+| public_token tip_token id_token '(' NizArgumenata ')' '{' return_token E ';' '}' {
+    Type* methodType;
+    if(*$2 == "int") {
+        methodType = new IntType();
+    } else if(*$2 == "double") {
+        methodType = new DoubleType();
+    } else if(*$2 == "char") {
+        methodType = new CharType();
+    } else {
+        methodType = new StringType();
+    }
+    if(methodType->type() != $9->typecheck()->type()) {
+        cerr << "Invalid return type in method " << *$3 << endl;
+        exit(EXIT_FAILURE);
+    }
+    cout << "There are no semantics errors in class " << *$3 << endl;
+    delete $3;
+    delete $2;
+}
+| public_token tip_token id_token '(' ')' '{' return_token E ';' '}' {
+    Type* methodType;
+    if(*$2 == "int") {
+        methodType = new IntType();
+    } else if(*$2 == "double") {
+        methodType = new DoubleType();
+    } else if(*$2 == "char") {
+        methodType = new CharType();
+    } else {
+        methodType = new StringType();
+    }
+    if(methodType->type() != $8->typecheck()->type()) {
+        cerr << "Invalid return type in method " << *$3 << endl;
+        exit(EXIT_FAILURE);
+    }
+    cout << "There are no semantics errors in class " << *$3 << endl;
+    delete $3;
+    delete $2;
+}
+;
+
+NizArgumenata : NizArgumenata ',' Naredba {}
+| Naredba {}
+;
+
+// Argument : tip_token id_token {
+//     map<string, Type*>::iterator tmp = tablica.find(*$2);
+//     if(tmp != tablica.end()) {
+//         cerr << "Variable " << $2 << " is already defined" << endl;
+//         exit(EXIT_FAILURE);
+//     }
+//     delete $2;
+// }
+// | tip_token '[' ']' id_token {
+//     map<string, Type*>::iterator tmp = tablica.find(*$4);
+//     if(tmp != tablica.end()) {
+//         cerr << "Variable " << $4 << " is already defined" << endl;
+//         exit(EXIT_FAILURE);
+//     }
+//     delete $4;
+// }
+// ;
 
 NizNaredbi : NizNaredbi Naredba ';' {
     $$ = new SeqExprAST($1, $2);
@@ -124,6 +298,29 @@ Naredba : tip_token id_token '=' E  {
     delete $4;
     delete $7;
 }
+| tip_token id_token {
+    map<string, Type*>::iterator tmp = tablica.find(*$2);
+    if(tmp != tablica.end()) {
+        cerr << "Variable " << *$2 << " is already defined" << endl;
+        exit(EXIT_FAILURE);
+    }
+    if(*$1 == "int") {
+        $$ = new AssignExprAST(*$2, new ConstantExprAST(new IntType()), new IntType());
+        tablica[*$2] = new IntType();
+    } else if(*$1 == "double") {
+        $$ = new AssignExprAST(*$2, new ConstantExprAST(new DoubleType()), new DoubleType());
+        tablica[*$2] = new DoubleType();
+    } else if(*$1 == "char") {
+        $$ = new AssignExprAST(*$2, new ConstantExprAST(new CharType()), new CharType());
+        tablica[*$2] = new CharType();
+    } else {
+        $$ = new AssignExprAST(*$2, new ConstantExprAST(new StringType()), new StringType());
+        tablica[*$2] = new StringType();
+    }
+
+    delete $1;
+    delete $2;
+}
 | id_token '=' E {
     $$ = new PredefineExprAST(*$1, $3);
     delete $1;
@@ -174,7 +371,7 @@ E : E '+' E {
 %%
 
 int main() {
-    //yydebug = 1;
+    // yydebug = 1;
 
     yyparse();
 
