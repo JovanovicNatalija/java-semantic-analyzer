@@ -322,9 +322,6 @@ Type* PredefineExprAST::typecheck() const {
         }
     }
 
-    /* TODO: obrisi */
-    // cout << "ok " << _s << endl;
-
     /* ako je sve ok vracamo tip prom */
     return varType->copy();
 }
@@ -468,8 +465,6 @@ Type* ElementOfArrayExprAST::typecheck() const {
 
     /* ako je sve ok vracamo tip prom */
     return elementOfArrayType->copy();
-
-    return varType->getType()->copy();
 }
 
 Type* SeqExprAST::typecheck() const {
@@ -479,4 +474,67 @@ Type* SeqExprAST::typecheck() const {
         return NULL;
     
     return e2->copy();
+}
+
+/* za konstruktor samo proverimo telo konstruktora */
+Type* Constructor::typecheck() const {
+    return _v[0]->typecheck();
+}
+
+/* za metod proverimo telo metoda i proverimo da li se poklapa tip povratne vrednosti sa onim sto se vraca */
+Type* Method::typecheck() const {
+    Type* body = _v[0]->typecheck();
+    
+    if(!body) {
+        return NULL;
+    }
+
+    Type* retInstructionType = _v[1]->typecheck();
+
+    /* ako je povratna vrednost niz onda se samo niz mora vratiti. I to niz elemenata istog tipa! */
+    if(_retType->type() == ARRAY) {
+        if(retInstructionType->type() != ARRAY)
+            return NULL;
+        else {
+            ArrayType* retTypeA = (ArrayType*) _retType;
+            ArrayType* retInstructionTypeA = (ArrayType*) retInstructionType;
+            if(retTypeA->type() != retInstructionTypeA->type())
+                return NULL;
+        }
+    }
+
+    /* ako je povratna vrednost string onda se samo string mora vratiti */
+    if(_retType->type() == STRING) {
+        if(retInstructionType->type() != STRING)
+            return NULL;
+    }
+
+    /* ako je povratna vrednost double onda se ne sme vratiti string ili niz */
+    if(_retType->type() == DOUBLE) {
+        if(retInstructionType->type() == STRING || retInstructionType->type() == ARRAY)
+            return NULL;
+    }
+
+    /* ako je povratna vrednost int onda se ne sme vratiti double, string ili niz */
+    if(_retType->type() == INT) {
+        if(retInstructionType->type() == STRING || retInstructionType->type() == ARRAY || retInstructionType->type() == DOUBLE) 
+            return NULL;
+    }
+
+    /* ako je povratna vrednost char onda se ne sme vratiti double, string ili niz */
+    if(_retType->type() == CHAR) {
+        if(retInstructionType->type() == STRING || retInstructionType->type() == ARRAY || retInstructionType->type() == DOUBLE) 
+            return NULL;
+    }
+
+    return _retType->copy();
+}
+
+/* mislim da je svejedno sta vraca samo da ne vrati NULL */
+Type* EmptyAST::typecheck() const {
+    return new IntType();
+}
+
+string Constructor::getName() {
+    return string(_name.c_str());
 }

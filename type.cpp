@@ -58,5 +58,9 @@ int ClassType::type() const {
 }
 
 Type *ClassType::copy() const {
-    return new ClassType();
+    return new ClassType(_name);
+}
+
+string ClassType::getName() const {
+    return _name;
 }

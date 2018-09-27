@@ -1,24 +1,19 @@
 class Tacka {
-         public double x;
-	 public double y;
-         
-         public Tacka() {
-             x = 0;
-             y = 0;
-         }
-         
-         public Tacka(double x1, double y1) {
-             x = x1;
-             y = y1;
-         }
-         
-         public double getX() {
-             return x;
-         }
-         
-         public double getY() {
-             return y;
-         }
+    public double x;
+	public double y;
+    
+    public Tacka() {
+        x = 0;
+        y = 0;
+    }
+    
+    public double getX() {
+        return x;
+    }
+    
+    public double getY() {
+        return y;
+    }
 }
 
 public class Main {
@@ -30,5 +25,6 @@ public class Main {
 	    m[1] = 0;
 	    c = "natalija";
 	    s = "1";
+	    Tacka t = new Tacka();
 	}
 }

@@ -59,9 +59,14 @@ private:
 
 class ClassType : public Type {
 public:
+  ClassType(string name)
+  : _name(name)
+  {}
   int type() const;
-  string name() const;
   Type* copy() const;
+  string getName() const;
+private:
+  string _name;
 };
 
 #endif

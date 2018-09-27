@@ -135,4 +135,60 @@ public:
     Type* typecheck() const;
 };
 
+
+/* odavde su dodate klase */
+
+class Field {
+public:
+    Field(Type* t, string name) 
+    : _t(t), _name(name)
+    {}
+private:
+    Type* _t;
+    string _name;
+};
+
+class Constructor : public InnerExprAST {
+public:
+    Constructor(string name, vector < pair < Type*, string > > arrayArg, ExprAST* body)  
+    : InnerExprAST(body), _name(name), _arrayArg(arrayArg)
+    {}
+    Type* typecheck() const;
+    string getName();
+private:
+    string _name;
+    vector < pair < Type*, string > > _arrayArg;
+};
+
+class Method : public InnerExprAST {
+public:
+    Method(Type* retType, string name, vector < pair < Type*, string> > arrayArg, ExprAST* body, ExprAST* retInstruction) 
+    : InnerExprAST(body, retInstruction), _retType(retType) , _name(name), _arrayArg(arrayArg) 
+    {}
+    Type* typecheck() const;
+private:
+    Type* _retType;
+    string _name;
+    vector < pair < Type*, string > > _arrayArg;
+};
+
+class Class {
+public:
+    Class(string name, vector < Field* > fields, Constructor *constructor, vector < Method*> methods)
+    : _name(name), _fields(fields), _constructor(constructor), _methods(methods)
+    {}
+public:
+    string _name;
+    vector<Field*> _fields;
+    Constructor *_constructor;
+    vector<Method*> _methods;
+};
+
+class EmptyAST : public ExprAST {
+public:
+    EmptyAST()
+    {}
+    Type* typecheck() const;
+};
+
 #endif
