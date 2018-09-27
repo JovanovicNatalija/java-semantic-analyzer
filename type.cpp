@@ -58,9 +58,14 @@ int ClassType::type() const {
 }
 
 Type *ClassType::copy() const {
+<<<<<<< HEAD
     return new ClassType(_name);
 }
 
 string ClassType::getName() const {
     return _name;
 }
+=======
+    return new ClassType();
+}
+>>>>>>> c21f709d39009fe0eb9ae919c240a1d90e9aca4f

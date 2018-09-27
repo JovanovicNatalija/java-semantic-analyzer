@@ -20,6 +20,10 @@
 
     map<string, Type*> tablica;
     
+<<<<<<< HEAD
+=======
+    /* obrati paznju na ovu tablicu, nije ista kao ono sto si ti radila */
+>>>>>>> c21f709d39009fe0eb9ae919c240a1d90e9aca4f
     map<string, Class*> tablicaKlasa;
 
     Type* tip(string t) {
@@ -86,7 +90,11 @@ NizKlasa : NizKlasa Klasa {
 }
 ;
 
+<<<<<<< HEAD
 Klasa : class_token klasni_tip_token '{' NizPolja Konstruktor NizMetoda '}' {
+=======
+Klasa : class_token id_token '{' NizPolja Konstruktor NizMetoda '}' {
+>>>>>>> c21f709d39009fe0eb9ae919c240a1d90e9aca4f
     map<string, Class*>::iterator tmp = tablicaKlasa.find(*$2);
     if(tmp != tablicaKlasa.end()) {
         cerr << "Class " << *$2 << " is already defined." << endl;
@@ -97,12 +105,27 @@ Klasa : class_token klasni_tip_token '{' NizPolja Konstruktor NizMetoda '}' {
         cerr << "Name of constructor and name of class must be equal! " << endl;
         exit(EXIT_FAILURE);
     }
+<<<<<<< HEAD
     
     $$ = new Class(*$2, *$4, $5, *$6);
+=======
+
+    cout << "ovde ulazi" << endl;
+    
+    $$ = new Class(*$2, *$4, *$5, *$6);
+    
+    cout << "ovde ne ulazi " << endl;
+
+    // vrv je greska negde u konstruktoru
+>>>>>>> c21f709d39009fe0eb9ae919c240a1d90e9aca4f
 
     tablicaKlasa[*$2] = $$;
     delete $2;
     delete $4;
+<<<<<<< HEAD
+=======
+    delete $5;
+>>>>>>> c21f709d39009fe0eb9ae919c240a1d90e9aca4f
     delete $6;
 }
 ;
@@ -149,7 +172,11 @@ Polja : Polja ',' id_token ';' {
 ;
 
 // konstruktor je uradjen
+<<<<<<< HEAD
 Konstruktor :  public_token klasni_tip_token '(' NizArgumenata ')' '{' NizNaredbi '}' {
+=======
+Konstruktor :  public_token id_token '(' NizArgumenata ')' '{' NizNaredbi '}' {
+>>>>>>> c21f709d39009fe0eb9ae919c240a1d90e9aca4f
     $$ = new Constructor(*$2, *$4, $7);
     delete $2;
     delete $4;
@@ -185,7 +212,10 @@ NizMetoda : NizMetoda Metod {
     $$->push_back($2);
 }
 | Metod {
+<<<<<<< HEAD
     $$ = new vector<Method*>;
+=======
+>>>>>>> c21f709d39009fe0eb9ae919c240a1d90e9aca4f
     $$->push_back($1);
 }
 ;
@@ -386,7 +416,7 @@ E : E '+' E {
 %%
 
 int main() {
-    // yydebug = 1;
+    //yydebug = 1;
 
     yyparse();
 

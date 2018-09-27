@@ -174,13 +174,21 @@ private:
 
 class Class {
 public:
+<<<<<<< HEAD
     Class(string name, vector < Field* > fields, Constructor *constructor, vector < Method*> methods)
+=======
+    Class(string name, vector < Field* > fields, Constructor constructor, vector < Method*> methods)
+>>>>>>> c21f709d39009fe0eb9ae919c240a1d90e9aca4f
     : _name(name), _fields(fields), _constructor(constructor), _methods(methods)
     {}
 public:
     string _name;
     vector<Field*> _fields;
+<<<<<<< HEAD
     Constructor *_constructor;
+=======
+    Constructor _constructor;
+>>>>>>> c21f709d39009fe0eb9ae919c240a1d90e9aca4f
     vector<Method*> _methods;
 };
 
