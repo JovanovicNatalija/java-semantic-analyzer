@@ -28,11 +28,11 @@
     yylval.s = new string(yytext);
     return tip_token;
 }
-[A-Z_][a-zA-Z0-9_]* {
+[A-Z][a-zA-Z0-9_]* {
     yylval.s = new string(yytext);
     return klasni_tip_token;
 }
-[a-z_][a-zA-Z0-9_]* {
+[a-z][a-zA-Z0-9_]* {
     yylval.s = new string(yytext);
     return id_token;
 }

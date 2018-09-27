@@ -562,17 +562,6 @@ Type* SeqExprAST::typecheck() const {
 }
 
 Type *MethodExprAST::typecheck() const {
-    /* proveri tip izraza _v[0]
-       nadji njegovu klasu
-       nadji metod sa _methodName u toj klasi
-       ako ne postoji vrati null
-       inace vrati tip pov vr metoda
-
-       JOS:
-       proveri vektor argumenata:
-       dimenziju vektora
-       tip svakog arg da li se poklapa sa trazenim
-     */
     Type *varType = _v[0]->typecheck();
     if(!varType) {
         return NULL;
@@ -604,17 +593,70 @@ Type *MethodExprAST::typecheck() const {
             method = m;
         }
     }
-    /* ako metod postoji vrati njegov povratni tip */
-    if(method != NULL) {
-        return method->getRetType();
-    }
-    /* Inace ne postoji */
-    else if(method == NULL) {
+    /* ako ne postoji */
+    if(method == NULL) {
         cerr << "Method " << _methodName << " does not exist in class " << name << endl;
         exit(EXIT_FAILURE);
     }
 
-    return NULL;
+    /* proverava se dimenzija niza argumenata */
+    if(method->getSize() != _arrayArg->size()) {
+        cerr << "Invalid dimension" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    vector<Type*> *types = method->getTypes();
+
+    vector<ExprAST*>::iterator it_ex;
+    vector<Type*>::iterator it_ty;
+    for (it_ex = _arrayArg->begin(), it_ty = types->begin(); it_ex != _arrayArg->end(), it_ty != types->end(); it_ex++, it_ty++) {
+        ExprAST* e = (ExprAST*)*it_ex;
+        Type* t = (Type*)*it_ty;
+        if(e->typecheck()->type() != t->type()) {
+            cerr << e->typecheck()->type() << endl << t->type() << endl;
+            cerr << "Types must match!" << endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+        /* vraca se povratni tip metoda */
+        return method->getRetType();
+}
+
+Type* FieldExprAST::typecheck() const {
+    Type *varType = _v[0]->typecheck();
+    if (!varType)
+    {
+        return NULL;
+    }
+
+    if(varType->type() != CLASS) {
+        cerr << "Incomatibile type! It must be class type." << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    /* dohvata ime klase */
+    ClassType *ct = (ClassType *)varType;
+    string name = ct->getName();
+    map<string, Class *>::iterator tmp = tablicaKlasa.find(name);
+    /* mora da postoji */
+    Class *varClass = tmp->second;
+
+    vector<Field*> varClassFields = varClass->getFields();
+    Field* field = NULL;
+    for(auto f : varClassFields) {
+        if (f->getName() == _fieldName) {
+            field = f;
+        }
+    }
+
+    /* ako ne postoji */
+    if(field == NULL) {
+        cerr << "Method " << _fieldName << " does not exist." << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    return field->getType();
 }
 
 /* za konstruktor samo proverimo telo konstruktora */
@@ -679,6 +721,18 @@ Type *Method::getRetType() {
     return _retType;
 }
 
+unsigned Method::getSize() {
+    return _arrayArg.size();
+}
+
+vector<Type*> *Method::getTypes() {
+    vector<Type*> *types = new vector<Type*>;
+    for(auto e : _arrayArg) {
+        types->push_back(e.first);
+    }
+    return types;
+}
+
 /* mislim da je svejedno sta vraca samo da ne vrati NULL */
 Type* EmptyAST::typecheck() const {
     return new IntType();
@@ -692,10 +746,22 @@ vector<Method*> Class::getMethods() {
     return _methods;
 }
 
-vector<string> *Class::getMethodsNames() {
-    vector<string> *methodsNames = new vector<string>();
-    for(auto e : _methods) {
-        methodsNames->push_back(e->getName());
-    }
-    return methodsNames;
+// vector<string> *Class::getMethodsNames() {
+//     vector<string> *methodsNames = new vector<string>();
+//     for(auto e : _methods) {
+//         methodsNames->push_back(e->getName());
+//     }
+//     return methodsNames;
+// }
+
+vector<Field*> Class::getFields() {
+    return _fields;
+}
+
+string Field::getName() {
+    return _name;
+}
+
+Type* Field::getType() {
+    return _t;
 }

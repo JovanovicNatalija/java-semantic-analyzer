@@ -14,6 +14,11 @@ class Tacka {
     public double getY() {
         return y;
     }
+
+    public double metod(double k) {
+        double i = k*1.2;
+	return i;
+    }
 }
 
 public class Main {
@@ -26,10 +31,11 @@ public class Main {
 	    c = "natalija";
 	    s = "1";
 	    Tacka t = new Tacka();
-	    double k = s / 2;
+	    double v = 2.2 + 1;
 	    double o = t.getX();
+	    o = t.x;
 	    Tacka t1 = new Tacka();
-	    Tacka t2 = t + t1;
 	    Tacka [] p = new Tacka[2];
+	    v = t.metod(1.2);
 	}
 }

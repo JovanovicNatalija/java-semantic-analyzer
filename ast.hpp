@@ -139,15 +139,24 @@ public:
 class MethodExprAST : public InnerExprAST {
 public:
     /* dodaj vektor argumenata */
-    MethodExprAST(ExprAST *e1, string methodName)//, vector<ExprAST*> arrayArg)
-    : InnerExprAST(e1), _methodName(methodName)//, _arrayArg(arrayArg)
+    MethodExprAST(ExprAST *e1, string methodName, vector<ExprAST*> *arrayArg)
+    : InnerExprAST(e1), _methodName(methodName), _arrayArg(arrayArg)
     {}
     Type* typecheck() const;
 private:
     string _methodName;
-    // vector<ExprAST*> _arrayArg;
+    vector<ExprAST*> *_arrayArg;
 };
 
+class FieldExprAST : public InnerExprAST {
+public:
+    FieldExprAST(ExprAST *e, string fieldName)
+    : InnerExprAST(e), _fieldName(fieldName)
+    {}
+    Type *typecheck() const;
+private:
+    string _fieldName;
+};
 
 /* odavde su dodate klase */
 
@@ -156,6 +165,8 @@ public:
     Field(Type* t, string name) 
     : _t(t), _name(name)
     {}
+    string getName();
+    Type* getType();
 private:
     Type* _t;
     string _name;
@@ -181,6 +192,8 @@ public:
     Type* typecheck() const;
     string getName();
     Type* getRetType();
+    unsigned getSize();
+    vector<Type*> *getTypes();
 private:
     Type* _retType;
     string _name;
@@ -193,7 +206,8 @@ public:
     : _name(name), _fields(fields), _constructor(constructor), _methods(methods)
     {}
     vector<Method*> getMethods();
-    vector<string> *getMethodsNames();
+    vector<Field*> getFields();
+    // vector<string> *getMethodsNames();
 public:
     string _name;
     vector<Field*> _fields;
