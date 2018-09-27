@@ -3,7 +3,7 @@ CC = g++
 CFLAGS = -Wall -std=c++11
 
 $(PROG): lex.yy.o parser.o ast.o type.o
-	$(CC) -o $@ $^
+	$(CC) -ggdb -o $@ $^
 lex.yy.o: lex.yy.c parser.tab.hpp ast.hpp type.hpp
 	$(CC) $(CFLAGS) -Wno-sign-compare -c -o $@ $<
 lex.yy.c: lexer.l

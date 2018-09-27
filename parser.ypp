@@ -254,6 +254,10 @@ Naredba : tip_token id_token '=' E  {
         varArrayType = new StringType();
     }
 
+    if(*$1 != *$7) {
+        cerr << "Types must match." << endl;
+        exit(EXIT_FAILURE); 
+    }
     Type* exprArrayType = NULL;
     if(*$7 == "int") {
         exprArrayType = new IntType();
@@ -340,6 +344,31 @@ Naredba : tip_token id_token '=' E  {
     delete $2;
     delete $1;
 }
+| klasni_tip_token '[' ']' id_token '=' new_token klasni_tip_token '[' int_token ']' {
+    map<string, Class*>::iterator tmp = tablicaKlasa.find(*$1);
+    if(tmp == tablicaKlasa.end()) {
+        cerr << "Class " << *$1 << " is not defined." << endl;
+        exit(EXIT_FAILURE); 
+    }
+
+    map<string, Type*>::iterator t = tablica.find(*$4);
+    if(t != tablica.end()) {
+        cerr << "Variable " << *$4 << " is already defined" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    if(*$1 != *$7) {
+        cerr << "Types must match" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    tablica[*$4] = new ArrayType($9, new ClassType(*$1));
+    $$ = new AssignExprAST(*$4, new ConstantExprAST(new ClassType(*$1)), new ClassType(*$1));
+
+    delete $1;
+    delete $4;
+    delete $7;
+}
 ;
 
 E : E '+' E {
@@ -380,6 +409,10 @@ E : E '+' E {
 | new_token klasni_tip_token '(' ')' {
     $$ = new ConstantExprAST(new ClassType(*$2));
     delete $2;
+}
+| E '.' id_token '(' ')' {
+    $$ = new MethodExprAST($1, *$3); //, new vector<ExprAST*>());
+    delete $3;
 }
 ;
 

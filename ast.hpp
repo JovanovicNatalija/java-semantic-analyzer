@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <algorithm>
 #include "type.hpp"
 
 using namespace std;
@@ -135,6 +136,18 @@ public:
     Type* typecheck() const;
 };
 
+class MethodExprAST : public InnerExprAST {
+public:
+    /* dodaj vektor argumenata */
+    MethodExprAST(ExprAST *e1, string methodName)//, vector<ExprAST*> arrayArg)
+    : InnerExprAST(e1), _methodName(methodName)//, _arrayArg(arrayArg)
+    {}
+    Type* typecheck() const;
+private:
+    string _methodName;
+    // vector<ExprAST*> _arrayArg;
+};
+
 
 /* odavde su dodate klase */
 
@@ -166,6 +179,8 @@ public:
     : InnerExprAST(body, retInstruction), _retType(retType) , _name(name), _arrayArg(arrayArg) 
     {}
     Type* typecheck() const;
+    string getName();
+    Type* getRetType();
 private:
     Type* _retType;
     string _name;
@@ -177,6 +192,8 @@ public:
     Class(string name, vector < Field* > fields, Constructor *constructor, vector < Method*> methods)
     : _name(name), _fields(fields), _constructor(constructor), _methods(methods)
     {}
+    vector<Method*> getMethods();
+    vector<string> *getMethodsNames();
 public:
     string _name;
     vector<Field*> _fields;

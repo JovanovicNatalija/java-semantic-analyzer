@@ -18,6 +18,7 @@ Type *ConstantExprAST::typecheck() const {
 
 
 extern map<string, Type*> tablica;
+extern map<string, Class*> tablicaKlasa;
 
 Type *VariableExprAST::typecheck() const
 {
@@ -61,6 +62,12 @@ Type *AddExprAST::typecheck() const
         return NULL;
     }
 
+    /* ne moze + sa klasama! */
+    if(l->type() == CLASS || d->type() == CLASS) {
+        cerr << "There is no operator + for class." << endl;
+        return NULL;
+    }
+
     /* string + {char, int, double, string} = string */
     if(l->type() == STRING || d->type() == STRING) {
         return new StringType();
@@ -92,6 +99,13 @@ Type *SubExprAST::typecheck() const
     /* ne moze - sa nizovima! */
     if(l->type() == ARRAY || d->type() == ARRAY) {
         cout << "There is no operator - for array." << endl;
+        return NULL;
+    }
+
+    /* ne moze - sa klasama! */
+    if (l->type() == CLASS || d->type() == CLASS)
+    {
+        cerr << "There is no operator - for class." << endl;
         return NULL;
     }
 
@@ -130,6 +144,13 @@ Type *MulExprAST::typecheck() const
         return NULL;
     }
 
+    /* ne moze * sa klasama! */
+    if (l->type() == CLASS || d->type() == CLASS)
+    {
+        cerr << "There is no operator * for class." << endl;
+        return NULL;
+    }
+
     /* ne moze * sa stringovima! */
     if(l->type() == STRING || d->type() == STRING) {
         cout << "There is no operator * for string." << endl;
@@ -165,6 +186,13 @@ Type *DivExprAST::typecheck() const
         return NULL;
     }
 
+    /* ne moze / sa klasama! */
+    if (l->type() == CLASS || d->type() == CLASS)
+    {
+        cerr << "There is no operator / for class." << endl;
+        return NULL;
+    }
+
     /* ne moze / sa stringovima! */
     if(l->type() == STRING || d->type() == STRING) {
         cout << "There is no operator / for string." << endl;
@@ -195,6 +223,11 @@ Type* AssignExprAST::typecheck() const {
 
     Type* exprType = _v[0]->typecheck();
     Type* varType = _t;
+
+    if (!exprType || !varType)
+    {
+        return NULL;
+    }
 
     /* ako je prom tipa ARRAY */
     if (varType->type() == ARRAY) {
@@ -244,6 +277,19 @@ Type* AssignExprAST::typecheck() const {
     if(varType->type() == CHAR) {
         int t = exprType->type();
         if(t == ARRAY || t == STRING || t == DOUBLE) {
+            cerr << "Incompatible types: " << exprType->type() << " cannot be converted to " << varType->type() << endl;
+            return NULL;
+        }
+    }
+
+    /* ako je prom tipa CLASS */
+    if (varType->type() == CLASS)
+    {
+        int t = exprType->type();
+        ClassType* ct_v = (ClassType*)varType;
+        ClassType* ct_e = (ClassType*)exprType;
+        if (t != CLASS || ct_v->getName() != ct_e->getName())
+        {
             cerr << "Incompatible types: " << exprType->type() << " cannot be converted to " << varType->type() << endl;
             return NULL;
         }
@@ -322,6 +368,19 @@ Type* PredefineExprAST::typecheck() const {
         }
     }
 
+    /* ako je prom tipa CLASS */
+    if (varType->type() == CLASS)
+    {
+        int t = exprType->type();
+        ClassType *ct_v = (ClassType *)varType;
+        ClassType *ct_e = (ClassType *)exprType;
+        if (t != CLASS || ct_v->getName() != ct_e->getName())
+        {
+            cerr << "Incompatible types: " << exprType->type() << " cannot be converted to " << varType->type() << endl;
+            return NULL;
+        }
+    }
+
     /* ako je sve ok vracamo tip prom */
     return varType->copy();
 }
@@ -390,6 +449,19 @@ Type* PredefineArrayExprAST::typecheck() const {
         }
     }
 
+    /* ako je prom tipa CLASS */
+    if (elementOfArrayType->type() == CLASS)
+    {
+        int t = exprType->type();
+        ClassType* ct_v = (ClassType*)varType;
+        ClassType* ct_e = (ClassType*)exprType;
+        if (t != CLASS || ct_v->getName() != ct_e->getName())
+        {
+            cerr << "Incompatible types: " << exprType->type() << " cannot be converted to " << varType->type() << endl;
+            return NULL;
+        }
+    }
+
     /* ako je sve ok vracamo tip prom */
     return elementOfArrayType->copy();
 }
@@ -434,7 +506,7 @@ Type* ElementOfArrayExprAST::typecheck() const {
         int t = exprType->type();
         if (t == ARRAY || t == STRING)
         {
-            cerr << "10 Incompatible types: " << exprType->type() << " cannot be converted to " << elementOfArrayType->type() << endl;
+            cerr << "Incompatible types: " << exprType->type() << " cannot be converted to " << elementOfArrayType->type() << endl;
             return NULL;
         }
     }
@@ -447,7 +519,7 @@ Type* ElementOfArrayExprAST::typecheck() const {
             ce doci do gubitka informacija ukoliko se to uradi */
         if (t == ARRAY || t == STRING || t == DOUBLE)
         {
-            cerr << "11 Incompatible types: " << exprType->type() << " cannot be converted to " << elementOfArrayType->type() << endl;
+            cerr << "Incompatible types: " << exprType->type() << " cannot be converted to " << elementOfArrayType->type() << endl;
             return NULL;
         }
     }
@@ -458,7 +530,20 @@ Type* ElementOfArrayExprAST::typecheck() const {
         int t = exprType->type();
         if (t == ARRAY || t == STRING || t == DOUBLE)
         {
-            cerr << "12 Incompatible types: " << exprType->type() << " cannot be converted to " << elementOfArrayType->type() << endl;
+            cerr << "Incompatible types: " << exprType->type() << " cannot be converted to " << elementOfArrayType->type() << endl;
+            return NULL;
+        }
+    }
+
+    /* ako je prom tipa CLASS */
+    if (elementOfArrayType->type() == CLASS)
+    {
+        int t = exprType->type();
+        ClassType* ct_v = (ClassType*)varType;
+        ClassType* ct_e = (ClassType*)exprType;
+        if (t != CLASS || ct_v->getName() != ct_e->getName())
+        {
+            cerr << "Incompatible types: " << exprType->type() << " cannot be converted to " << varType->type() << endl;
             return NULL;
         }
     }
@@ -474,6 +559,62 @@ Type* SeqExprAST::typecheck() const {
         return NULL;
     
     return e2->copy();
+}
+
+Type *MethodExprAST::typecheck() const {
+    /* proveri tip izraza _v[0]
+       nadji njegovu klasu
+       nadji metod sa _methodName u toj klasi
+       ako ne postoji vrati null
+       inace vrati tip pov vr metoda
+
+       JOS:
+       proveri vektor argumenata:
+       dimenziju vektora
+       tip svakog arg da li se poklapa sa trazenim
+     */
+    Type *varType = _v[0]->typecheck();
+    if(!varType) {
+        return NULL;
+    }
+
+    if(varType->type() != CLASS) {
+        cerr << "Incomatibile type! It must be class type." << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    /* dohvata ime klase */
+    ClassType* ct = (ClassType*)varType;
+    string name = ct->getName();
+    map<string, Class*>::iterator tmp = tablicaKlasa.find(name);
+    /* mora da postoji */
+    Class* varClass = tmp->second;
+
+    /* dohvata imena metoda date klase i proverava da li data klasa postoji */
+    // vector<string> *varClassMethodsNames = varClass->getMethodsNames();
+    // if(find(varClassMethodsNames->begin(), varClassMethodsNames->end(), _methodName) == varClassMethodsNames->end()) {
+    //     cerr << "Method " << _methodName << "does not exist in class " << name << endl;
+    //     exit(EXIT_FAILURE);
+    // }
+
+    vector<Method*> varClassMethods = varClass->getMethods();
+    Method* method = NULL;
+    for(auto m : varClassMethods) {
+        if(m->getName() == _methodName) {
+            method = m;
+        }
+    }
+    /* ako metod postoji vrati njegov povratni tip */
+    if(method != NULL) {
+        return method->getRetType();
+    }
+    /* Inace ne postoji */
+    else if(method == NULL) {
+        cerr << "Method " << _methodName << " does not exist in class " << name << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    return NULL;
 }
 
 /* za konstruktor samo proverimo telo konstruktora */
@@ -530,6 +671,14 @@ Type* Method::typecheck() const {
     return _retType->copy();
 }
 
+string Method::getName() {
+    return _name;
+}
+
+Type *Method::getRetType() {
+    return _retType;
+}
+
 /* mislim da je svejedno sta vraca samo da ne vrati NULL */
 Type* EmptyAST::typecheck() const {
     return new IntType();
@@ -537,4 +686,16 @@ Type* EmptyAST::typecheck() const {
 
 string Constructor::getName() {
     return string(_name.c_str());
+}
+
+vector<Method*> Class::getMethods() {
+    return _methods;
+}
+
+vector<string> *Class::getMethodsNames() {
+    vector<string> *methodsNames = new vector<string>();
+    for(auto e : _methods) {
+        methodsNames->push_back(e->getName());
+    }
+    return methodsNames;
 }

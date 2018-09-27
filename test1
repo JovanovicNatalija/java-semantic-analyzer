@@ -26,5 +26,10 @@ public class Main {
 	    c = "natalija";
 	    s = "1";
 	    Tacka t = new Tacka();
+	    double k = s / 2;
+	    double o = t.getX();
+	    Tacka t1 = new Tacka();
+	    Tacka t2 = t + t1;
+	    Tacka [] p = new Tacka[2];
 	}
 }

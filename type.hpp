@@ -64,7 +64,7 @@ public:
   {}
   int type() const;
   Type* copy() const;
-  string getName() const;
+  string getName();
 private:
   string _name;
 };
