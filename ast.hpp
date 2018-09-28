@@ -4,7 +4,6 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include <algorithm>
 #include "type.hpp"
 
 using namespace std;
@@ -136,37 +135,15 @@ public:
     Type* typecheck() const;
 };
 
-class MethodExprAST : public InnerExprAST {
-public:
-    /* dodaj vektor argumenata */
-    MethodExprAST(ExprAST *e1, string methodName, vector<ExprAST*> *arrayArg)
-    : InnerExprAST(e1), _methodName(methodName), _arrayArg(arrayArg)
-    {}
-    Type* typecheck() const;
-private:
-    string _methodName;
-    vector<ExprAST*> *_arrayArg;
-};
-
-class FieldExprAST : public InnerExprAST {
-public:
-    FieldExprAST(ExprAST *e, string fieldName)
-    : InnerExprAST(e), _fieldName(fieldName)
-    {}
-    Type *typecheck() const;
-private:
-    string _fieldName;
-};
-
-/* odavde su dodate klase */
-
 class Field {
 public:
     Field(Type* t, string name) 
     : _t(t), _name(name)
     {}
     string getName();
-    Type* getType();
+    Type* getType() {
+        return _t->copy();
+    }
 private:
     Type* _t;
     string _name;
@@ -205,9 +182,9 @@ public:
     Class(string name, vector < Field* > fields, Constructor *constructor, vector < Method*> methods)
     : _name(name), _fields(fields), _constructor(constructor), _methods(methods)
     {}
+    Type* typecheck() const;
     vector<Method*> getMethods();
     vector<Field*> getFields();
-    // vector<string> *getMethodsNames();
 public:
     string _name;
     vector<Field*> _fields;
@@ -220,6 +197,38 @@ public:
     EmptyAST()
     {}
     Type* typecheck() const;
+};
+
+class MainClass {
+public:
+    MainClass(ExprAST* body)
+    : _body(body)
+    {}
+    Type* typecheck() const;
+private:
+    ExprAST* _body;
+};
+
+class MethodExprAST : public InnerExprAST {
+public:
+    /* dodaj vektor argumenata */
+    MethodExprAST(ExprAST *e1, string methodName, vector<ExprAST*> *arrayArg)
+    : InnerExprAST(e1), _methodName(methodName), _arrayArg(arrayArg)
+    {}
+    Type* typecheck() const;
+private:
+    string _methodName;
+    vector<ExprAST*> *_arrayArg;
+};
+
+class FieldExprAST : public InnerExprAST {
+public:
+    FieldExprAST(ExprAST *e, string fieldName)
+    : InnerExprAST(e), _fieldName(fieldName)
+    {}
+    Type *typecheck() const;
+private:
+    string _fieldName;
 };
 
 #endif

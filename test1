@@ -7,17 +7,13 @@ class Tacka {
         y = 0;
     }
     
-    public double getX() {
+    public double getX(int y) {
+        double x = 1 + 2;
         return x;
     }
     
-    public double getY() {
+    public double getY(int x) {
         return y;
-    }
-
-    public double metod(double k) {
-        double i = k*1.2;
-	return i;
     }
 }
 
@@ -27,15 +23,8 @@ public class Main {
 	    String c = "m";
 	    char n = 'm';
 	    int [] m = new int[5];
-	    m[1] = 0;
-	    c = "natalija";
+	    m[1] = 0 + 1;
 	    s = "1";
 	    Tacka t = new Tacka();
-	    double v = 2.2 + 1;
-	    double o = t.getX();
-	    o = t.x;
-	    Tacka t1 = new Tacka();
-	    Tacka [] p = new Tacka[2];
-	    v = t.metod(1.2);
 	}
 }

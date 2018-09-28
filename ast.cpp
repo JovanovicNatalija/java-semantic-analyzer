@@ -4,6 +4,11 @@
 #include <typeinfo>
 #include <map>
 
+extern Type* getVarFromTable(string s);
+extern void end_scope();
+
+extern map<string, Class*> tablicaKlasa;
+
 ExprAST::~ExprAST() {
 
 }
@@ -17,18 +22,11 @@ Type *ConstantExprAST::typecheck() const {
 }
 
 
-extern map<string, Type*> tablica;
-extern map<string, Class*> tablicaKlasa;
-
 Type *VariableExprAST::typecheck() const
 {
-    map<string, Type*>::iterator tmp = tablica.find(_name);
-    if(tmp == tablica.end()) {
-        cerr << "Variable '" << _name << "' used but is never defined." << endl;
-        exit(EXIT_FAILURE);
-    }
+    Type* t = getVarFromTable(_name);
 
-    return tmp->second->copy();
+    return t->copy();
 }
 
 InnerExprAST::InnerExprAST(ExprAST* e1) {
@@ -213,21 +211,18 @@ Type *DivExprAST::typecheck() const
     return new CharType();
 }
 
+extern map < string, vector < Type* > > tableOfVars; 
+
+/* prepravljeno */
 Type* AssignExprAST::typecheck() const {
-    map<string, Type *>::iterator tmp = tablica.find(_s);
-    if (tmp == tablica.end())
-    {
-        cerr << "Variable '" << _s << "' was not declared." << endl;
+    map < string, vector < Type* > >::iterator tmp = tableOfVars.find(_s);
+    if(tmp == tableOfVars.end()) {
+        cerr << "Variable '" << _s << "' used, but never defined." << endl;
         exit(EXIT_FAILURE);
     }
 
     Type* exprType = _v[0]->typecheck();
     Type* varType = _t;
-
-    if (!exprType || !varType)
-    {
-        return NULL;
-    }
 
     /* ako je prom tipa ARRAY */
     if (varType->type() == ARRAY) {
@@ -300,17 +295,9 @@ Type* AssignExprAST::typecheck() const {
 }
 
 Type* PredefineExprAST::typecheck() const {
-    map<string, Type *>::iterator tmp = tablica.find(_s);
-    if (tmp == tablica.end())
-    {
-        cerr << "Variable '" << _s << "' was not declared." << endl;
-        exit(EXIT_FAILURE);
-    }
-
+    Type* varType = getVarFromTable(_s);
     Type* exprType = _v[0]->typecheck();
-    Type* varType = tmp->second;
     
-
     if(!exprType || !varType) {
         return NULL;
     } 
@@ -368,7 +355,7 @@ Type* PredefineExprAST::typecheck() const {
         }
     }
 
-    /* ako je prom tipa CLASS */
+     /* ako je prom tipa CLASS */
     if (varType->type() == CLASS)
     {
         int t = exprType->type();
@@ -386,12 +373,7 @@ Type* PredefineExprAST::typecheck() const {
 }
 
 Type* PredefineArrayExprAST::typecheck() const {
-    map<string, Type *>::iterator tmp = tablica.find(_s);
-    if (tmp == tablica.end())
-    {
-        cerr << "Variable '" << _s << "' was not declared." << endl;
-        exit(EXIT_FAILURE);
-    }
+    Type* varType = getVarFromTable(_s);
 
     Type* n = _v[0]->typecheck();
     if (n->type() != INT)
@@ -399,13 +381,13 @@ Type* PredefineArrayExprAST::typecheck() const {
 
     Type* exprType = _v[1]->typecheck();
 
-    if(tmp->second->type() != ARRAY) {
+    if(varType->type() != ARRAY) {
         cerr << "Variable '" << _s << "' isn't type of array." << endl;
         return NULL; 
     }
-    ArrayType* varType = (ArrayType*)tmp->second;
+    ArrayType* varType2 = (ArrayType*)varType;
 
-    Type* elementOfArrayType = varType->getType();
+    Type* elementOfArrayType = varType2->getType();
 
     if(!exprType || !elementOfArrayType) {
         return NULL;
@@ -467,23 +449,19 @@ Type* PredefineArrayExprAST::typecheck() const {
 }
 
 Type* ElementOfArrayExprAST::typecheck() const {
-    map<string, Type *>::iterator tmp = tablica.find(_s);
-    if (tmp == tablica.end())
-    {
-        cerr << "Variable '" << _s << "' was not declared." << endl;
-        exit(EXIT_FAILURE);
-    }
+    Type* varType = getVarFromTable(_s);
 
     Type *exprType = _v[0]->typecheck();
 
-    if (tmp->second->type() != ARRAY) // || tmp->second->type() != STRING)
+    if (varType->type() != ARRAY)
     {
         cerr << "Variable '" << _s << "' isn't type of array." << endl;
         return NULL;
     }
-    ArrayType *varType = (ArrayType *)tmp->second;
 
-    Type *elementOfArrayType = varType->getType();
+    ArrayType *varType2 = (ArrayType *)varType;
+
+    Type *elementOfArrayType = varType2->getType();
 
     if (!exprType || !elementOfArrayType)
     {
@@ -506,7 +484,7 @@ Type* ElementOfArrayExprAST::typecheck() const {
         int t = exprType->type();
         if (t == ARRAY || t == STRING)
         {
-            cerr << "Incompatible types: " << exprType->type() << " cannot be converted to " << elementOfArrayType->type() << endl;
+            cerr << "10 Incompatible types: " << exprType->type() << " cannot be converted to " << elementOfArrayType->type() << endl;
             return NULL;
         }
     }
@@ -519,7 +497,7 @@ Type* ElementOfArrayExprAST::typecheck() const {
             ce doci do gubitka informacija ukoliko se to uradi */
         if (t == ARRAY || t == STRING || t == DOUBLE)
         {
-            cerr << "Incompatible types: " << exprType->type() << " cannot be converted to " << elementOfArrayType->type() << endl;
+            cerr << "11 Incompatible types: " << exprType->type() << " cannot be converted to " << elementOfArrayType->type() << endl;
             return NULL;
         }
     }
@@ -530,7 +508,7 @@ Type* ElementOfArrayExprAST::typecheck() const {
         int t = exprType->type();
         if (t == ARRAY || t == STRING || t == DOUBLE)
         {
-            cerr << "Incompatible types: " << exprType->type() << " cannot be converted to " << elementOfArrayType->type() << endl;
+            cerr << "12 Incompatible types: " << exprType->type() << " cannot be converted to " << elementOfArrayType->type() << endl;
             return NULL;
         }
     }
@@ -561,6 +539,84 @@ Type* SeqExprAST::typecheck() const {
     return e2->copy();
 }
 
+/* za konstruktor samo proverimo telo konstruktora */
+Type* Constructor::typecheck() const {
+    Type* constrTypeCheck = _v[0]->typecheck();
+    end_scope();
+    return constrTypeCheck->copy();
+}
+
+/* za metod proverimo telo metoda i proverimo da li se poklapa tip povratne vrednosti sa onim sto se vraca */
+Type* Method::typecheck() const {
+    Type* body = _v[0]->typecheck();
+    
+    if(!body) {
+        return NULL;
+    }
+
+    Type* retInstructionType = _v[1]->typecheck();
+
+    /* ako je povratna vrednost niz onda se samo niz mora vratiti. I to niz elemenata istog tipa! */
+    if(_retType->type() == ARRAY) {
+        if(retInstructionType->type() != ARRAY)
+            return NULL;
+        else {
+            ArrayType* retTypeA = (ArrayType*) _retType;
+            ArrayType* retInstructionTypeA = (ArrayType*) retInstructionType;
+            if(retTypeA->type() != retInstructionTypeA->type())
+                return NULL;
+        }
+    }
+
+    /* ako je povratna vrednost string onda se samo string mora vratiti */
+    if(_retType->type() == STRING) {
+        if(retInstructionType->type() != STRING)
+            return NULL;
+    }
+
+    /* ako je povratna vrednost double onda se ne sme vratiti string ili niz */
+    if(_retType->type() == DOUBLE) {
+        if(retInstructionType->type() == STRING || retInstructionType->type() == ARRAY)
+            return NULL;
+    }
+
+    /* ako je povratna vrednost int onda se ne sme vratiti double, string ili niz */
+    if(_retType->type() == INT) {
+        if(retInstructionType->type() == STRING || retInstructionType->type() == ARRAY || retInstructionType->type() == DOUBLE) 
+            return NULL;
+    }
+
+    /* ako je povratna vrednost char onda se ne sme vratiti double, string ili niz */
+    if(_retType->type() == CHAR) {
+        if(retInstructionType->type() == STRING || retInstructionType->type() == ARRAY || retInstructionType->type() == DOUBLE) 
+            return NULL;
+    }
+
+    end_scope();
+
+    return _retType->copy();
+}
+
+Type* Class::typecheck() const {
+    Type* constr = _constructor->typecheck();
+    if(constr == NULL)
+        return NULL;
+    /* za slucaj da nema type bolje neka bude bilo koji tip nego null */
+    Type* method = new IntType();
+    for(Method* m: _methods) {
+        method = m->typecheck();
+        if(method == NULL)
+            return NULL;
+    }
+
+    end_scope();
+    return method->copy();
+}
+
+Type* MainClass::typecheck() const {
+    return _body->typecheck();
+}
+
 Type *MethodExprAST::typecheck() const {
     Type *varType = _v[0]->typecheck();
     if(!varType) {
@@ -580,11 +636,6 @@ Type *MethodExprAST::typecheck() const {
     Class* varClass = tmp->second;
 
     /* dohvata imena metoda date klase i proverava da li data klasa postoji */
-    // vector<string> *varClassMethodsNames = varClass->getMethodsNames();
-    // if(find(varClassMethodsNames->begin(), varClassMethodsNames->end(), _methodName) == varClassMethodsNames->end()) {
-    //     cerr << "Method " << _methodName << "does not exist in class " << name << endl;
-    //     exit(EXIT_FAILURE);
-    // }
 
     vector<Method*> varClassMethods = varClass->getMethods();
     Method* method = NULL;
@@ -659,58 +710,16 @@ Type* FieldExprAST::typecheck() const {
     return field->getType();
 }
 
-/* za konstruktor samo proverimo telo konstruktora */
-Type* Constructor::typecheck() const {
-    return _v[0]->typecheck();
+vector<Method*> Class::getMethods() {
+    return _methods;
 }
 
-/* za metod proverimo telo metoda i proverimo da li se poklapa tip povratne vrednosti sa onim sto se vraca */
-Type* Method::typecheck() const {
-    Type* body = _v[0]->typecheck();
-    
-    if(!body) {
-        return NULL;
-    }
+vector<Field*> Class::getFields() {
+    return _fields;
+}
 
-    Type* retInstructionType = _v[1]->typecheck();
-
-    /* ako je povratna vrednost niz onda se samo niz mora vratiti. I to niz elemenata istog tipa! */
-    if(_retType->type() == ARRAY) {
-        if(retInstructionType->type() != ARRAY)
-            return NULL;
-        else {
-            ArrayType* retTypeA = (ArrayType*) _retType;
-            ArrayType* retInstructionTypeA = (ArrayType*) retInstructionType;
-            if(retTypeA->type() != retInstructionTypeA->type())
-                return NULL;
-        }
-    }
-
-    /* ako je povratna vrednost string onda se samo string mora vratiti */
-    if(_retType->type() == STRING) {
-        if(retInstructionType->type() != STRING)
-            return NULL;
-    }
-
-    /* ako je povratna vrednost double onda se ne sme vratiti string ili niz */
-    if(_retType->type() == DOUBLE) {
-        if(retInstructionType->type() == STRING || retInstructionType->type() == ARRAY)
-            return NULL;
-    }
-
-    /* ako je povratna vrednost int onda se ne sme vratiti double, string ili niz */
-    if(_retType->type() == INT) {
-        if(retInstructionType->type() == STRING || retInstructionType->type() == ARRAY || retInstructionType->type() == DOUBLE) 
-            return NULL;
-    }
-
-    /* ako je povratna vrednost char onda se ne sme vratiti double, string ili niz */
-    if(_retType->type() == CHAR) {
-        if(retInstructionType->type() == STRING || retInstructionType->type() == ARRAY || retInstructionType->type() == DOUBLE) 
-            return NULL;
-    }
-
-    return _retType->copy();
+string Field::getName() {
+    return _name;
 }
 
 string Method::getName() {
@@ -739,29 +748,5 @@ Type* EmptyAST::typecheck() const {
 }
 
 string Constructor::getName() {
-    return string(_name.c_str());
-}
-
-vector<Method*> Class::getMethods() {
-    return _methods;
-}
-
-// vector<string> *Class::getMethodsNames() {
-//     vector<string> *methodsNames = new vector<string>();
-//     for(auto e : _methods) {
-//         methodsNames->push_back(e->getName());
-//     }
-//     return methodsNames;
-// }
-
-vector<Field*> Class::getFields() {
-    return _fields;
-}
-
-string Field::getName() {
     return _name;
-}
-
-Type* Field::getType() {
-    return _t;
 }

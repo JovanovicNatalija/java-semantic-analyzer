@@ -18,9 +18,14 @@
 
     int yylex();
 
-    map<string, Type*> tablica;
+    /* prazna niska oznacava pocetak novog bloka */
+    vector < string > stack = vector< string >();
+
+    map < string, vector < Type* > > tableOfVars; 
     
-    map<string, Class*> tablicaKlasa;
+    map < string, Class* > tablicaKlasa;
+
+    bool indNaredbe = true;
 
     Type* tip(string t) {
         if(t == "int") 
@@ -32,12 +37,79 @@
         
         return new StringType();  
     }
+
+    void putVarInTable(string s, Type* t) {
+        // dodajemo na stek
+        vector < string >::reverse_iterator i = stack.rbegin();
+        while (i != stack.rend())
+        {
+            if(s == *i) {
+                cerr << "Variable '" << s << "' is already defined." << endl;
+                exit(EXIT_FAILURE);
+            }
+            if(string("") == *i)
+                break;
+            ++i;
+        } 
+
+        stack.push_back(s);
+
+        // dodajemo u mapu
+        map < string, vector < Type* > >::iterator tmp = tableOfVars.find(s);
+        if(tmp == tableOfVars.end()) { 
+            vector < Type* > v = vector < Type* >();
+            v.push_back(t);
+            tableOfVars[s] = v;
+        } else {
+            tableOfVars[s].push_back(t);
+        }
+
+        // cout << "dodali smo " << s << endl;
+    }
+
+    Type* getVarFromTable(string s) {
+        // ako ne nadje string onda se tu ni ne nalazi
+        map < string, vector < Type* > >::iterator tmp = tableOfVars.find(s);
+        if(tmp == tableOfVars.end()) {
+            cerr << "Variable '" << s << "' used, but never defined." << endl;
+            exit(EXIT_FAILURE);
+        }
+
+        // ako smo u nekom momentu dodavali a potom 
+        vector < Type* >::reverse_iterator i = tableOfVars[s].rbegin();
+        if(i != tableOfVars[s].rend()) {
+            return *i;
+        } else {
+            cerr << "Variable '" << s << "' used, but never defined." << endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    void deleteVarFromTable(string s) {
+        tableOfVars[s].pop_back();
+    }
+
+    void begin_scope() {
+        // cout << " pocetak scope-a " << endl;
+        stack.push_back(string(""));
+    }
+
+    void end_scope() {
+        while(1) {
+            string s = stack.back();
+            stack.pop_back();
+            if (s == string("")) break;
+            deleteVarFromTable(s);
+        }
+        // cout << " kraj scope-a " << endl;
+    }
+
 %}
 
 %union {
     int i;
     ExprAST* e;
-    vector<ExprAST*>* e1;
+    vector<ExprAST*> *e1;
     string *s;
     vector < string >* v;
     vector < Field* >* v1;
@@ -48,6 +120,7 @@
     Method* m;
     Class* c1;
     vector < Class* >* v5; 
+    MainClass* c2;
 }
 
 %token new_token char_token public_token static_token void_token main_token string_token double_token Main_token
@@ -68,14 +141,31 @@
 %type <c> Konstruktor
 %type <c1> Klasa
 %type <v5> NizKlasa
+%type <c2> KlasaMain
 
-%left '+' '-'
+%left '-' '+'
 %left '*' '/' 
 %nonassoc '.'
 
+
+
+
+
 %% 
 Program : NizKlasa KlasaMain {
+    Type* mainCheck = $2->typecheck();
 
+    bool ind = false;
+    for(Class* c: *$1) {
+        Type* classTypeCheck = c->typecheck();
+        if(classTypeCheck == NULL)
+            ind = true;
+    }
+
+    if(mainCheck && ind == false)
+        cout << "There are no semantics errors." << endl;
+    
+    end_scope();
 }
 ;
 
@@ -111,30 +201,34 @@ Klasa : class_token klasni_tip_token '{' NizPolja Konstruktor NizMetoda '}' {
 ;
 
 KlasaMain : public_token class_token Main_token '{' public_token static_token void_token main_token '(' tip_token '[' ']' id_token ')' '{' NizNaredbi '}' '}' {
-    Type* lastCheck = $16->typecheck();
-    if(lastCheck) {
-        cout << "There are no semantics errors." << endl;
-    }
-    delete lastCheck;
+    indNaredbe = true;
+    $$ = new MainClass($16);
 }
 ;
 
 // polja su uradjena 
 NizPolja : NizPolja Polje {
     $$ = $1;
-    for(Field* f: *($2))
+    for(Field* f: *($2)) {
+        putVarInTable(f->getName(), f->getType());
         $$->push_back(f);
+    }
     delete $2;
 }
 | Polje {
+    begin_scope();
     $$ = $1;
+    for(Field* f: *($1)) {
+        putVarInTable(f->getName(), f->getType());  
+    }
 }
 ;
 
 Polje : public_token tip_token Polja {
     $$ = new vector<Field*>();
-    for(string s: *($3))
+    for(string s: *($3)) {
         $$->push_back(new Field(tip(*$2), s));
+    }
     delete $2;
     delete $3;
 } 
@@ -153,6 +247,10 @@ Polja : Polja ',' id_token ';' {
 
 // konstruktor je uradjen
 Konstruktor :  public_token klasni_tip_token '(' NizArgumenata ')' '{' NizNaredbi '}' {
+    for(auto par: *$4) {
+        putVarInTable(par.second, par.first); 
+    }
+    indNaredbe = true;
     $$ = new Constructor(*$2, *$4, $7);
     delete $2;
     delete $4;
@@ -197,12 +295,20 @@ NizMetoda : NizMetoda Metod {
 // Naredba moze da ode u prazno i tu pravim EmptyAST(ne znam da li postoji bolje resenje) i onda ne treba poseban slucaj i za to
 
 Metod : public_token tip_token id_token '(' NizArgumenata ')' '{' NizNaredbi return_token E ';' '}' {
+    for(auto par: *$5) {
+        putVarInTable(par.second, par.first); 
+    }
     Type* methodType = tip(*$2);
     $$ = new Method(methodType, *$3, *$5, $8, $10);
     delete $3;
     delete $5;
+    indNaredbe = true;
 }
 | public_token tip_token id_token '(' NizArgumenata ')' '{' return_token E ';' '}' {
+    begin_scope();
+    for(auto par: *$5) {
+        putVarInTable(par.second, par.first); 
+    }
     Type* methodType = tip(*$2);
     $$ = new Method(methodType, *$3, *$5, new EmptyAST(), $9);
     delete $3;
@@ -211,130 +317,98 @@ Metod : public_token tip_token id_token '(' NizArgumenata ')' '{' NizNaredbi ret
 ;
 
 
+
 NizNaredbi : NizNaredbi Naredba ';' {
     $$ = new SeqExprAST($1, $2);
 }
 | Naredba ';' {
+    indNaredbe = false;
     $$ = $1;
 }
-// | {
-//     $$ = new EmptyAST();
-// }
 ;
 
 Naredba : tip_token id_token '=' E  {
-    map<string, Type*>::iterator tmp = tablica.find(*$2);
-    if(tmp != tablica.end()) {
-        cerr << "Variable " << *$2 << " is already defined" << endl;
-        exit(EXIT_FAILURE);
-    }
-    if(*$1 == "int") {
-        $$ = new AssignExprAST(*$2, $4, new IntType());
-        tablica[*$2] = new IntType();
-    } else if(*$1 == "double") {
-        $$ = new AssignExprAST(*$2, $4, new DoubleType());
-        tablica[*$2] = new DoubleType();
-    } else if(*$1 == "char") {
-        $$ = new AssignExprAST(*$2, $4, new CharType());
-        tablica[*$2] = new CharType();
-    } else {
-        $$ = new AssignExprAST(*$2, $4, new StringType());
-        tablica[*$2] = new StringType();
-    }
-
+    if(indNaredbe) 
+        begin_scope();
+    Type* t = tip(*$1);
+    putVarInTable(*$2, t->copy());
+    $$ = new AssignExprAST(*$2, $4, t);
     delete $1;
     delete $2;
 }
 | tip_token '['']' id_token '=' new_token tip_token '[' int_token ']' {
-    map<string, Type*>::iterator tmp = tablica.find(*$4);
-    if(tmp != tablica.end()) {
-        cerr << "Variable " << *$4 << " is already defined" << endl;
-        exit(EXIT_FAILURE);
-    }
+    if(indNaredbe) 
+        begin_scope();
+    Type* typeOfVar = new ArrayType($9, tip(*$1));
+    Type* typeOfExpr = new ArrayType($9, tip(*$7));
 
-    Type* varArrayType = NULL;
-    if(*$1 == "int") {
-        varArrayType = new IntType();
-    } else if(*$1 == "double") {
-        varArrayType = new DoubleType();
-    } else if(*$1 == "char") {
-        varArrayType = new CharType();
-    } else {
-        varArrayType = new StringType();
-    }
+    putVarInTable(*$4, typeOfVar->copy());
 
-    if(*$1 != *$7) {
-        cerr << "Types must match." << endl;
-        exit(EXIT_FAILURE); 
-    }
-    Type* exprArrayType = NULL;
-    if(*$7 == "int") {
-        exprArrayType = new IntType();
-    } else if(*$7 == "double") {
-        exprArrayType = new DoubleType();
-    } else if(*$7 == "char") {
-        exprArrayType = new CharType();
-    } else {
-        exprArrayType = new StringType();
-    }
-
-    tablica[*$4] = new ArrayType($9, varArrayType->copy());
-
-    $$ = new AssignExprAST(*$4, new ConstantExprAST(new ArrayType($9, exprArrayType)), new ArrayType($9, varArrayType));
+    $$ = new AssignExprAST(*$4, new ConstantExprAST(typeOfExpr), typeOfVar);
 
     delete $1;
     delete $4;
     delete $7;
 }
 | tip_token id_token {
-    map<string, Type*>::iterator tmp = tablica.find(*$2);
-    if(tmp != tablica.end()) {
-        cerr << "Variable " << *$2 << " is already defined" << endl;
-        exit(EXIT_FAILURE);
-    }
-    if(*$1 == "int") {
-        $$ = new AssignExprAST(*$2, new ConstantExprAST(new IntType()), new IntType());
-        tablica[*$2] = new IntType();
-    } else if(*$1 == "double") {
-        $$ = new AssignExprAST(*$2, new ConstantExprAST(new DoubleType()), new DoubleType());
-        tablica[*$2] = new DoubleType();
-    } else if(*$1 == "char") {
-        $$ = new AssignExprAST(*$2, new ConstantExprAST(new CharType()), new CharType());
-        tablica[*$2] = new CharType();
+    if(indNaredbe) 
+        begin_scope();
+    Type* t = tip(*$1);
+    putVarInTable(*$2, t->copy());
+    if(t->type() == STRING) {
+        $$ = new AssignExprAST(*$2, new ConstantExprAST(new StringType()), t);
+    } else if(t->type() == INT) {
+        $$ = new AssignExprAST(*$2, new ConstantExprAST(new IntType()), t);
+    } else if(t->type() == DOUBLE) {
+        $$ = new AssignExprAST(*$2, new ConstantExprAST(new DoubleType()), t);
     } else {
-        $$ = new AssignExprAST(*$2, new ConstantExprAST(new StringType()), new StringType());
-        tablica[*$2] = new StringType();
+        $$ = new AssignExprAST(*$2, new ConstantExprAST(new CharType()), t);
     }
-
     delete $1;
     delete $2;
 }
 | id_token '=' E {
+    if(indNaredbe) 
+        begin_scope();
     $$ = new PredefineExprAST(*$1, $3);
     delete $1;
 }
 | id_token '[' E ']' '=' E {
+    if(indNaredbe) 
+        begin_scope();
     $$ = new PredefineArrayExprAST(*$1, $3, $6);
     delete $1;
 }
 | klasni_tip_token id_token '=' E {
+    if(indNaredbe) 
+        begin_scope();
     map<string, Class*>::iterator tmp = tablicaKlasa.find(*$1);
     if(tmp == tablicaKlasa.end()) {
         cerr << "Class " << *$1 << " is not defined." << endl;
         exit(EXIT_FAILURE); 
     }
+    
+    putVarInTable(*$2, new ClassType(*$1));
 
-    map<string, Type*>::iterator t = tablica.find(*$2);
-    if(t != tablica.end()) {
-        cerr << "Variable " << *$2 << " is already defined" << endl;
-        exit(EXIT_FAILURE);
-    }
-
-    tablica[*$2] = new ClassType(*$1);
     $$ = new AssignExprAST(*$2, $4, new ClassType(*$1));
     delete $2;
     delete $1;
 }
+| klasni_tip_token id_token {
+    if(indNaredbe) 
+        begin_scope();
+    map<string, Class*>::iterator tmp = tablicaKlasa.find(*$1);
+    if(tmp == tablicaKlasa.end()) {
+        cerr << "Class " << *$1 << " is not defined." << endl;
+        exit(EXIT_FAILURE); 
+    }
+    
+    putVarInTable(*$2, new ClassType(*$1));
+
+    $$ = new AssignExprAST(*$2, new ConstantExprAST(new ClassType(*$1)), new ClassType(*$1));
+    delete $2;
+    delete $1;
+} 
 | klasni_tip_token '[' ']' id_token '=' new_token klasni_tip_token '[' int_token ']' {
     map<string, Class*>::iterator tmp = tablicaKlasa.find(*$1);
     if(tmp == tablicaKlasa.end()) {
@@ -342,41 +416,13 @@ Naredba : tip_token id_token '=' E  {
         exit(EXIT_FAILURE); 
     }
 
-    map<string, Type*>::iterator t = tablica.find(*$4);
-    if(t != tablica.end()) {
-        cerr << "Variable " << *$4 << " is already defined" << endl;
-        exit(EXIT_FAILURE);
-    }
-
-    if(*$1 != *$7) {
-        cerr << "Types must match" << endl;
-        exit(EXIT_FAILURE);
-    }
-
-    tablica[*$4] = new ArrayType($9, new ClassType(*$1));
-    $$ = new AssignExprAST(*$4, new ConstantExprAST(new ClassType(*$1)), new ClassType(*$1));
+    putVarInTable(*$4, new ArrayType($9, new ClassType(*$1)));
+    
+    $$ = new AssignExprAST(*$4, new ConstantExprAST(new ArrayType($9, new ClassType(*$1))), new ArrayType($9, new ClassType(*$1)));
 
     delete $1;
     delete $4;
     delete $7;
-}
-| klasni_tip_token id_token {
-    map<string, Class*>::iterator tmp = tablicaKlasa.find(*$1);
-    if(tmp == tablicaKlasa.end()) {
-        cerr << "Class " << *$1 << " is not defined." << endl;
-        exit(EXIT_FAILURE); 
-    }
-
-    map<string, Type*>::iterator t = tablica.find(*$2);
-    if(t != tablica.end()) {
-        cerr << "Variable " << *$2 << " is already defined" << endl;
-        exit(EXIT_FAILURE);
-    }
-
-    tablica[*$2] = new ClassType(*$1);
-    $$ = new AssignExprAST(*$2, new ConstantExprAST(new ClassType(*$1)), new ClassType(*$1));
-    delete $2;
-    delete $1;
 }
 ;
 
@@ -446,8 +492,8 @@ NizE : NizE ',' E {
 %%
 
 int main() {
-    // yydebug = 1;
-
+    //yydebug = 1;
+    
     yyparse();
 
     return 1;
